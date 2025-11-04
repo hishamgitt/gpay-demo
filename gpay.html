@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Google Pay UPI Demo</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; }
+    input, button { padding: 8px; margin-top: 8px; width: 260px; }
+  </style>
+</head>
+<body>
+  <h2>Google Pay UPI Payment</h2>
+
+  <label>Order ID:</label><br />
+  <input id="orderId" value="2334343" /><br /><br />
+
+  <label>Amount (INR):</label><br />
+  <input id="amount" value="1" /><br /><br />
+
+  <button onclick="payNow()">Pay Now</button>
+  <p id="msg"></p>
+
+  <script>
+    async function payNow() {
+      const order_id = document.getElementById("orderId").value;
+      const amount = document.getElementById("amount").value;
+
+      // 1️⃣ Call your Supabase Edge Function
+      const res = await fetch("https://omwmokhkbjrnpvaxtizd.supabase.co/functions/v1/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order_id, amount }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.status !== "ok") {
+        document.getElementById("msg").innerText = "Failed to create order!";
+        return;
+      }
+
+      // 2️⃣ Construct UPI intent URL
+      const upiId = data.upi_id; // returned by your function
+      const merchantName = encodeURIComponent("My Store");
+      const txnNote = encodeURIComponent("Order " + order_id);
+      const upiUrl = `upi://pay?pa=${upiId}&pn=${merchantName}&am=${amount}&cu=INR&tn=${txnNote}&tr=${order_id}`;
+
+      document.getElementById("msg").innerText = "Redirecting to Google Pay…";
+
+      // 3️⃣ Redirect to Google Pay
+      window.location.href = upiUrl;
+    }
+  </script>
+</body>
+</html>
